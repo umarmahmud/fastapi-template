@@ -27,6 +27,10 @@ secret_key = os.getenv("SECRET")
 algorithm = "HS256"
 token_expire_time = 15
 
+# jwt claims
+issuer = "company"
+audience = "web-app"
+
 router = APIRouter()
 
 def find_user(db_session, username):
@@ -57,15 +61,20 @@ def authenticate_user(db_session, username, password):
 
 
 def create_token(user: User):
-    to_encode = {}
-    to_encode.update({"sub": user.username})
-    expire = datetime.now(timezone.utc) + timedelta(minutes=token_expire_time)
-    to_encode.update({"exp": expire})
+    jwt_claims = {}
+    jwt_claims.update({"iss": issuer})
+    jwt_claims.update({"aud": audience})
+    time_now = datetime.now(timezone.utc)
+    expire = time_now + timedelta(minutes=token_expire_time)
+    jwt_claims.update({"iat": time_now})
+    jwt_claims.update({"nbf": time_now})
+    jwt_claims.update({"exp": expire})
+    jwt_claims.update({"sub": user.username})
     if user.admin_user:
-        to_encode.update({"roles": ["base", "admin"]})
+        jwt_claims.update({"roles": ["standard", "admin"]})
     else:
-        to_encode.update({"roles": ["base"]})
-    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
+        jwt_claims.update({"roles": ["standard"]})
+    encoded_jwt = jwt.encode(jwt_claims, secret_key, algorithm=algorithm)
     return encoded_jwt
 
 
@@ -110,3 +119,24 @@ def login(db_session: Annotated[Session, Depends(get_db)], form_data: Annotated[
         )
     access_token = create_token(user=user)
     return Token(access_token=access_token, token_type="Bearer")
+
+
+@router.post("/signup")
+def login(db_session: Annotated[Session, Depends(get_db)], form_data: Annotated[OAuth2PasswordRequestForm, Depends()], response: Response):
+    user = find_user(db_session, form_data.username)
+    if user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User already exists"
+        )
+    username = form_data.username
+    password = get_password_hash(form_data.password)
+    stmt = insert(UserTable).values(
+        username=username,
+        pwd=password,
+        admin_user=False
+    )
+    db_session.execute(stmt)
+    db_session.commit()
+    response.status_code = status.HTTP_201_CREATED
+    return { "user": username }
