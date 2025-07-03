@@ -10,15 +10,15 @@ class UserTable(Base):
     __tablename__ = "users"
 
     username: Mapped[str] = mapped_column(primary_key=True)
-    pwd: Mapped[str]
-    admin_user: Mapped[bool]
+    password: Mapped[str]
+    is_admin: Mapped[bool]
 
 
 # pydantic models
 class User(BaseModel):
     username: str
-    pwd: str
-    admin_user: bool
+    password: str
+    is_admin: bool
 
 
 class AdminUser(User):

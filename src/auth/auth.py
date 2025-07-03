@@ -28,8 +28,8 @@ algorithm = "HS256"
 token_expire_time = 15
 
 # jwt claims
-issuer = "company"
-audience = "web-app"
+issuer = ""
+audience = ""
 
 router = APIRouter()
 
@@ -55,26 +55,27 @@ def authenticate_user(db_session, username, password):
     user = find_user(db_session, username)
     if not user:
         return False
-    if not verify_password(password, user.pwd):
+    if not verify_password(password, user.password):
         return False
     return user
 
 
-def create_token(user: User):
-    jwt_claims = {}
-    jwt_claims.update({"iss": issuer})
-    jwt_claims.update({"aud": audience})
+def create_token(user):
+    to_encode = {}
+    to_encode.update({"iss": issuer})
+    to_encode.update({"aud": audience})
     time_now = datetime.now(timezone.utc)
     expire = time_now + timedelta(minutes=token_expire_time)
-    jwt_claims.update({"iat": time_now})
-    jwt_claims.update({"nbf": time_now})
-    jwt_claims.update({"exp": expire})
-    jwt_claims.update({"sub": user.username})
-    if user.admin_user:
-        jwt_claims.update({"roles": ["standard", "admin"]})
+    to_encode.update({"iat": time_now})
+    to_encode.update({"nbf": time_now})
+    to_encode.update({"exp": expire})
+    to_encode.update({"sub": user.username})
+    if user.is_admin:
+        to_encode.update({"roles": ["standard", "admin"]})
     else:
-        jwt_claims.update({"roles": ["standard"]})
-    encoded_jwt = jwt.encode(jwt_claims, secret_key, algorithm=algorithm)
+        to_encode.update({"roles": ["standard"]})
+    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
+    logging.info("TOKEN ISSUED")
     return encoded_jwt
 
 
@@ -95,7 +96,7 @@ def get_current_user(db_session: Annotated[Session, Depends(get_db)], token: Ann
     if user is None:
         raise credentials_exception
     if "admin" in payload.get("roles"):
-        return AdminUser(username=user.username, pwd=user.pwd, admin_user=user.admin_user)
+        return AdminUser(username=user.username, password=user.password, is_admin=user.is_admin)
     return user
 
 
@@ -122,7 +123,7 @@ def login(db_session: Annotated[Session, Depends(get_db)], form_data: Annotated[
 
 
 @router.post("/signup")
-def login(db_session: Annotated[Session, Depends(get_db)], form_data: Annotated[OAuth2PasswordRequestForm, Depends()], response: Response):
+def sign_up(db_session: Annotated[Session, Depends(get_db)], form_data: Annotated[OAuth2PasswordRequestForm, Depends()], response: Response):
     user = find_user(db_session, form_data.username)
     if user:
         raise HTTPException(
@@ -133,8 +134,8 @@ def login(db_session: Annotated[Session, Depends(get_db)], form_data: Annotated[
     password = get_password_hash(form_data.password)
     stmt = insert(UserTable).values(
         username=username,
-        pwd=password,
-        admin_user=False
+        password=password,
+        is_admin=False
     )
     db_session.execute(stmt)
     db_session.commit()
