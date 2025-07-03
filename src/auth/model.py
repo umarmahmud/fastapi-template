@@ -21,6 +21,10 @@ class User(BaseModel):
     admin_user: bool
 
 
+class AdminUser(User):
+    pass
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
