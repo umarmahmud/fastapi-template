@@ -14,7 +14,7 @@ from sqlalchemy import select, insert
 from sqlalchemy.orm import Session
 
 from .model import UserTable, User, AdminUser, Token
-from db import get_db
+from ..db import get_db
 
 load_dotenv()
 

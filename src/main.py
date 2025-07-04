@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from auth.auth import router as auth_router
-from logger import configure_logging
+from .auth.auth import router as auth_router
+from .logger import configure_logging
 
 configure_logging()
 
