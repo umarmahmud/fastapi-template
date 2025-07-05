@@ -7,6 +7,6 @@ It features:
 - Database configuration (works with PostgreSQL)
 - Files for logging configuration and custom exceptions
 - Auth setup with JWT
-- A `Dockerfile` and `docker-compose.ym` for deployments
+- A `Dockerfile` and `docker-compose.yml` for deployments
 
 Sensitive or environment-specific variables should be contained in an `.env` file.

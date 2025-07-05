@@ -6,13 +6,12 @@ from sqlalchemy.orm import sessionmaker
 
 load_dotenv()
 
-user = os.getenv("USER")
-server = os.getenv("SERVER")
-host = os.getenv("HOST")
-database = os.getenv("DATABASE")
+user = os.getenv("POSTGRES_USER")
+password = os.getenv("POSTGRES_PASSWORD")
+database = os.getenv("POSTGRES_DATABASE")
 
 
-db_url = f'postgresql+psycopg2://{user}:{server}@{host}/{database}'
+db_url = f'postgresql+psycopg2://{user}:{password}@db/{database}'
 engine = create_engine(db_url, echo=True)
 Session = sessionmaker(bind=engine)
 
